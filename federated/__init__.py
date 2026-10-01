@@ -1,0 +1,1 @@
+"""Future federation interfaces. Aggregation is intentionally not implemented."""

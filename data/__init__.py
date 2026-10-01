@@ -1,0 +1,1 @@
+"""Dataset and preprocessing interfaces; concrete loading is protocol-owned."""

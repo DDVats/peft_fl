@@ -1,0 +1,15 @@
+dataset: pathmnist
+method: hres
+backbone: google/vit-base-patch16-224-in21k
+num_classes: 9
+communication_mode: protocol-pending
+communication_state: adapter_plus_classifier
+number_of_clients: null
+client_fraction: null
+local_epochs: null
+federated_rounds: null
+batch_size: 32
+learning_rate: null
+seed: 42
+partition_strategy: iid
+# Federated protocol values are intentionally pending.

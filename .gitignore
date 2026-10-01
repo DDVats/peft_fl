@@ -1,0 +1,82 @@
+# Python caches and local environments
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+ENV/
+
+# Secrets and machine-local configuration
+.env
+.env.*
+credentials.json
+credentials.*
+secrets/
+*.secret
+*.secrets
+config.local.*
+
+# Editors, notebooks, and operating systems
+.vscode/
+.idea/
+.ipynb_checkpoints/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.swn
+
+# Python tooling and logs
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.log
+logs/
+
+# Generated experiment and tracking artifacts
+outputs/
+runs/
+checkpoints/
+artifacts/
+wandb/
+mlruns/
+tensorboard/
+events.out.tfevents.*
+results/checkpoints/
+results/runs/
+results/tensorboard/
+
+# Model checkpoints
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.safetensors
+
+# Raw, processed, and cached datasets
+data/raw/
+data/processed/
+data/cache/
+data/downloads/
+*.zip
+*.tar
+*.tar.gz
+*.7z
+*.rar
+
+# Hugging Face, Kaggle, and other download caches
+.cache/
+huggingface_cache/
+transformers_cache/
+.kaggle/
+kaggle.json
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
