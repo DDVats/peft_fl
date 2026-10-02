@@ -44,6 +44,10 @@ def train_local(model: Any, dataloader: Any, local_epochs: int, learning_rate: f
             logits = model.forward(inputs)
             batch_loss = criterion(logits, labels)
             batch_loss.backward()
+            if any(parameter.grad is not None for parameter in model.backbone.parameters()):
+                raise AssertionError("Frozen ViT backbone received a gradient")
+            if any(parameter.grad is not None and not parameter.requires_grad for _, parameter in model.named_parameters()):
+                raise AssertionError("A non-trainable parameter received a gradient")
             optimizer.step()
             scheduler.step()
             total_loss += float(batch_loss.detach()) * labels.numel()

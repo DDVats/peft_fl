@@ -4,4 +4,10 @@ TRAINING_SPEC = {"loss": "CrossEntropyLoss", "optimizer": "AdamW", "weight_decay
 
 
 def build_optimizer(*args, **kwargs):
-    raise NotImplementedError("Local training is intentionally not implemented in the foundation step.")
+    try:
+        import torch
+    except ImportError as exc:
+        raise RuntimeError("Optimizer construction requires torch.") from exc
+    parameters = args[0] if args else kwargs.pop("parameters")
+    learning_rate = kwargs.pop("learning_rate", kwargs.pop("lr", 0.001))
+    return torch.optim.AdamW(parameters, lr=learning_rate, weight_decay=0.01, **kwargs)

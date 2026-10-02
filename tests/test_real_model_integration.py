@@ -30,12 +30,16 @@ def test_real_factory_parameter_contracts(real_runtime):
             model = build_model(dataset=dataset, method=method)
             assert classifier_parameter_count(model.classifier) == expected_classifier_count
             assert model.adapter.adapter_parameter_count() == 589824
+            assert sum(parameter.numel() for parameter in model.trainable_parameters()) == expected_classifier_count + 589824
             assert all(not parameter.requires_grad for parameter in model.backbone.parameters())
 
 
 @pytest.mark.parametrize("method", ["lora", "hres"])
 def test_real_communication_state_and_round_trip(real_runtime, method):
     model = build_model(dataset="cifar100", method=method)
+    with real_runtime.no_grad():
+        logits = model.forward(real_runtime.randn(1, 3, 224, 224))
+    assert tuple(logits.shape) == (1, 100)
     state = communication_state(model, "adapter_plus_classifier")
     assert set(state) == {"adapter", "classifier"}
     assert state["adapter"]
@@ -50,6 +54,11 @@ def test_real_communication_state_and_round_trip(real_runtime, method):
         assert "layer_0.down.weight" in state["adapter"]
         assert "layer_11.up.weight" in state["adapter"]
         assert all(value == 0 for value in model.adapter.module.layer_0.up.weight.detach().flatten())
+        assert len(model.adapter._hook_handles) == 12
+        model.adapter._attach(model.backbone)
+        assert len(model.adapter._hook_handles) == 12
+        model.remove_hooks()
+        assert len(model.adapter._hook_handles) == 0
 
     client_model = build_model(dataset="cifar100", method=method)
     load_communication_state(client_model, state, "adapter_plus_classifier")
@@ -63,9 +72,7 @@ def test_real_communication_state_and_round_trip(real_runtime, method):
 
 @pytest.mark.parametrize("method", ["lora", "hres"])
 def test_one_tiny_real_client_update_preserves_backbone(real_runtime, method):
-    learning_rate = os.getenv("FL_VERIFY_LEARNING_RATE")
-    if learning_rate is None:
-        pytest.skip("NOT RUNTIME VERIFIED: set FL_VERIFY_LEARNING_RATE for the verification-only update")
+    learning_rate = float(os.getenv("FL_VERIFY_LEARNING_RATE", "0.001"))
     import torch
     from torch.utils.data import DataLoader, TensorDataset
 
@@ -77,7 +84,7 @@ def test_one_tiny_real_client_update_preserves_backbone(real_runtime, method):
     before_classifier = {key: value.detach().clone() for key, value in model.classifier.state_dict().items()}
     before_backbone = {key: value.detach().clone() for key, value in model.backbone.state_dict().items()}
 
-    client = Client(0, model, dataloader, 1, local_epochs=1, learning_rate=float(learning_rate))
+    client = Client(0, model, dataloader, 1, local_epochs=1, learning_rate=learning_rate)
     client.fit(communication_state(model, "adapter_plus_classifier"))
 
     assert any(not torch.equal(before, after) for key, before in before_adapter.items() for after in [model.adapter.adapter_state_dict()[key]])

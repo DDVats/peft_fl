@@ -2,14 +2,13 @@ dataset: cifar100
 method: hres
 backbone: google/vit-base-patch16-224-in21k
 num_classes: 100
-communication_mode: protocol-pending
 communication_state: adapter_plus_classifier
-number_of_clients: null
-client_fraction: null
-local_epochs: null
-federated_rounds: null
+number_of_clients: 2
+client_fraction: 1.0
+local_epochs: 1
+federated_rounds: 3
 batch_size: 32
-learning_rate: null
+learning_rate: 0.001
 seed: 42
 partition_strategy: iid
 # Federated protocol values are intentionally pending.

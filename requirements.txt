@@ -4,3 +4,4 @@ peft
 torchvision
 medmnist
 pytest
+flwr>=1.18,<2

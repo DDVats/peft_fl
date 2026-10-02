@@ -24,13 +24,15 @@ def iid_partitions(dataset: Any, number_of_clients: int, batch_size: int = 32, s
     random.Random(seed).shuffle(indices)
     chunks = [indices[index::number_of_clients] for index in range(number_of_clients)]
     try:
+        import torch
         from torch.utils.data import DataLoader, Subset
     except ImportError as exc:
         raise RuntimeError("Creating dataloaders requires torch.") from exc
     partitions = []
     for client_id, chunk in enumerate(chunks):
         client_dataset = Subset(dataset, chunk)
-        partitions.append(ClientPartition(client_id, tuple(chunk), client_dataset, DataLoader(client_dataset, batch_size=batch_size, shuffle=True)))
+        generator = torch.Generator().manual_seed(seed + client_id)
+        partitions.append(ClientPartition(client_id, tuple(chunk), client_dataset, DataLoader(client_dataset, batch_size=batch_size, shuffle=True, generator=generator)))
     return partitions
 
 

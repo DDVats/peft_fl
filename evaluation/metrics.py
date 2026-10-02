@@ -2,15 +2,30 @@ from __future__ import annotations
 
 
 def accuracy(*args, **kwargs):
-    raise NotImplementedError("Metric execution is pending the training pipeline.")
+    predictions, targets = args[:2]
+    return float((predictions == targets).sum()) / targets.numel()
 
 
 def macro_f1(*args, **kwargs):
-    raise NotImplementedError("Metric execution is pending the training pipeline.")
+    predictions, targets = args[:2]
+    classes = set(targets.tolist()) | set(predictions.tolist())
+    values = []
+    for class_id in classes:
+        true_positive = sum(prediction == class_id and target == class_id for prediction, target in zip(predictions.tolist(), targets.tolist()))
+        false_positive = sum(prediction == class_id and target != class_id for prediction, target in zip(predictions.tolist(), targets.tolist()))
+        false_negative = sum(prediction != class_id and target == class_id for prediction, target in zip(predictions.tolist(), targets.tolist()))
+        precision = true_positive / (true_positive + false_positive) if true_positive + false_positive else 0.0
+        recall = true_positive / (true_positive + false_negative) if true_positive + false_negative else 0.0
+        values.append(2 * precision * recall / (precision + recall) if precision + recall else 0.0)
+    return sum(values) / len(values) if values else 0.0
 
 
 def loss(*args, **kwargs):
-    raise NotImplementedError("Use evaluate_model for model evaluation.")
+    try:
+        import torch
+    except ImportError as exc:
+        raise RuntimeError("Loss calculation requires torch.") from exc
+    return float(torch.nn.functional.cross_entropy(*args, **kwargs))
     
 def evaluate_model(model, dataloader):
     if dataloader is None:
