@@ -25,7 +25,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dataset", default="cifar100")
     parser.add_argument("--method", choices=("lora", "hres"), default="lora")
     parser.add_argument("--num-clients", type=int, default=2)
-    parser.add_argument("--partition", choices=("iid",), default="iid")
+    parser.add_argument("--partition", choices=("iid", "noniid"), default="iid")
+    parser.add_argument("--alpha", type=float, default=None, help="Dirichlet concentration parameter for non-IID partitioning; required when --partition noniid")
     parser.add_argument("--rounds", type=int, default=3)
     parser.add_argument("--local-epochs", type=int, default=1)
     parser.add_argument("--batch-size", type=int, default=32)
@@ -57,12 +58,13 @@ def main() -> int:
         learning_rate=args.lr,
         seed=args.seed,
         partition_strategy=args.partition,
+        alpha=args.alpha,
     )
     random.seed(config.seed)
     dataset = load_dataset(config.dataset, root=args.data_root, seed=config.seed)
     import torch
     from torch.utils.data import DataLoader
-    partitions = partition_dataset(dataset.train, config.number_of_clients, config.partition_strategy, config.batch_size, config.seed)
+    partitions = partition_dataset(dataset.train, config.number_of_clients, config.partition_strategy, config.batch_size, config.seed, config.alpha)
     global_model = build_model(config.dataset, config.method)
     clients = [
         Client(
@@ -82,7 +84,7 @@ def main() -> int:
     initial_state = communication_state(global_model, config.communication_state)
     metadata = {
         "dataset": config.dataset, "method": config.method, "model_name": "google/vit-base-patch16-224-in21k",
-        "seed": config.seed, "num_clients": config.number_of_clients, "partition": config.partition_strategy,
+        "seed": config.seed, "num_clients": config.number_of_clients, "partition": config.partition_strategy, "alpha": config.alpha,
         "local_epochs": config.local_epochs, "batch_size": config.batch_size, "learning_rate": config.learning_rate,
         "communication_state": config.communication_state, "communication_parameters": communication_parameter_count(initial_state),
         "communication_bytes": communication_size_bytes(initial_state),
