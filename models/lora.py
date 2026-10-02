@@ -27,6 +27,10 @@ class LoraAdapter(AdapterInterface):
         self.model = peft.get_peft_model(model, config)
         self.peft = peft
         self.target_modules = (query_name, value_name)
+        self.adapter_parameter_names = {
+            name for name, parameter in self.model.named_parameters()
+            if parameter.requires_grad and ("lora_" in name.lower() or "lora" in name.lower())
+        }
 
     def adapter_state_dict(self) -> Mapping[str, Any]:
         getter = getattr(self.peft, "get_peft_model_state_dict", None)

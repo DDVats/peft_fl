@@ -66,5 +66,5 @@ def build_model(dataset: str, method: str, checkpoint: str = "google/vit-base-pa
     assert_vit_contract(backbone)
     classifier = build_classifier(DATASET_CLASSES[dataset])
     adapter = LoraAdapter(backbone) if method == "lora" else HResAdapter(backbone)
-    assert_backbone_frozen(backbone)
+    assert_backbone_frozen(backbone, getattr(adapter, "adapter_parameter_names", None))
     return FoundationModel(backbone, classifier, adapter, method)

@@ -6,6 +6,7 @@ import pytest
 
 from federated.aggregation import fedavg
 from federated.client import Client
+from models.backbone import is_peft_adapter_parameter
 from models.classifier import classifier_parameter_count
 from models.factory import build_model
 from models.state import communication_size_bytes, communication_state, load_communication_state
@@ -31,7 +32,17 @@ def test_real_factory_parameter_contracts(real_runtime):
             assert classifier_parameter_count(model.classifier) == expected_classifier_count
             assert model.adapter.adapter_parameter_count() == 589824
             assert sum(parameter.numel() for parameter in model.trainable_parameters()) == expected_classifier_count + 589824
-            assert all(not parameter.requires_grad for parameter in model.backbone.parameters())
+            assert all(
+                not parameter.requires_grad
+                for name, parameter in model.backbone.named_parameters()
+                if not is_peft_adapter_parameter(name)
+            )
+            if method == "lora":
+                original_trainable = [
+                    name for name, parameter in model.adapter.model.named_parameters()
+                    if parameter.requires_grad and not is_peft_adapter_parameter(name)
+                ]
+                assert original_trainable == []
 
 
 @pytest.mark.parametrize("method", ["lora", "hres"])
@@ -82,14 +93,18 @@ def test_one_tiny_real_client_update_preserves_backbone(real_runtime, method):
     dataloader = DataLoader(TensorDataset(pixel_values, labels), batch_size=1)
     before_adapter = {key: value.detach().clone() for key, value in model.adapter.adapter_state_dict().items()}
     before_classifier = {key: value.detach().clone() for key, value in model.classifier.state_dict().items()}
-    before_backbone = {key: value.detach().clone() for key, value in model.backbone.state_dict().items()}
+    before_backbone = {
+        key: value.detach().clone()
+        for key, value in model.backbone.named_parameters()
+        if not is_peft_adapter_parameter(key)
+    }
 
     client = Client(0, model, dataloader, 1, local_epochs=1, learning_rate=learning_rate)
     client.fit(communication_state(model, "adapter_plus_classifier"))
 
     assert any(not torch.equal(before, after) for key, before in before_adapter.items() for after in [model.adapter.adapter_state_dict()[key]])
     assert any(not torch.equal(before, after) for key, before in before_classifier.items() for after in [model.classifier.state_dict()[key]])
-    assert all(torch.equal(before, model.backbone.state_dict()[key]) for key, before in before_backbone.items())
+    assert all(torch.equal(before, dict(model.backbone.named_parameters())[key]) for key, before in before_backbone.items())
     assert client.fit
 
 

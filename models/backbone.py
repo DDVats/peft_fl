@@ -25,8 +25,21 @@ def build_frozen_backbone(checkpoint: str = BACKBONE_CHECKPOINT) -> Any:
     return backbone
 
 
-def assert_backbone_frozen(backbone: Any) -> None:
-    unfrozen = [name for name, parameter in backbone.named_parameters() if parameter.requires_grad]
+PEFT_ADAPTER_MARKERS = ("lora_a", "lora_b", "lora_embedding_a", "lora_embedding_b")
+
+
+def is_peft_adapter_parameter(name: str) -> bool:
+    normalized = name.lower()
+    return any(marker in normalized for marker in PEFT_ADAPTER_MARKERS)
+
+
+def assert_backbone_frozen(backbone: Any, adapter_parameter_names: set[str] | None = None) -> None:
+    allowed_adapter_names = adapter_parameter_names or set()
+    unfrozen = [
+        name
+        for name, parameter in backbone.named_parameters()
+        if parameter.requires_grad and name not in allowed_adapter_names and not is_peft_adapter_parameter(name)
+    ]
     if unfrozen:
         raise AssertionError(f"Frozen backbone has trainable parameters: {unfrozen}")
 

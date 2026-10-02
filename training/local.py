@@ -3,6 +3,8 @@ from __future__ import annotations
 import time
 from typing import Any, Callable
 
+from models.backbone import is_peft_adapter_parameter
+
 
 def _batch_inputs(batch: Any):
     if isinstance(batch, dict):
@@ -44,7 +46,11 @@ def train_local(model: Any, dataloader: Any, local_epochs: int, learning_rate: f
             logits = model.forward(inputs)
             batch_loss = criterion(logits, labels)
             batch_loss.backward()
-            if any(parameter.grad is not None for parameter in model.backbone.parameters()):
+            if any(
+                parameter.grad is not None
+                for name, parameter in model.backbone.named_parameters()
+                if not is_peft_adapter_parameter(name)
+            ):
                 raise AssertionError("Frozen ViT backbone received a gradient")
             if any(parameter.grad is not None and not parameter.requires_grad for _, parameter in model.named_parameters()):
                 raise AssertionError("A non-trainable parameter received a gradient")

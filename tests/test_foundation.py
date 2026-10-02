@@ -1,5 +1,6 @@
 import pytest
 
+from models.backbone import assert_backbone_frozen, is_peft_adapter_parameter
 from models.classifier import classifier_parameter_count
 from models.factory import DATASET_CLASSES, build_model
 from models.state import adapter_plus_classifier_state, assert_backbone_excluded
@@ -23,7 +24,11 @@ def test_runtime_contracts(require_scientific_runtime):
             model = build_model(dataset, method)
             expected = 589824
             assert model.adapter.adapter_parameter_count() == expected
-            assert all(not parameter.requires_grad for parameter in model.backbone.parameters())
+            assert all(
+                not parameter.requires_grad
+                for name, parameter in model.backbone.named_parameters()
+                if not is_peft_adapter_parameter(name)
+            )
             state = adapter_plus_classifier_state(model)
             assert state["adapter"]
             assert state["classifier"]
@@ -37,3 +42,22 @@ def test_hres_key_contract(require_scientific_runtime):
     assert "layer_0.up.weight" in keys
     assert "layer_11.down.weight" in keys
     assert "layer_11.up.weight" in keys
+
+
+class _FakeParameter:
+    def __init__(self, requires_grad):
+        self.requires_grad = requires_grad
+
+
+class _FakeBackbone:
+    def __init__(self, parameters):
+        self._parameters = parameters
+
+    def named_parameters(self):
+        return iter(self._parameters.items())
+
+
+def test_freeze_check_allows_only_peft_markers():
+    assert_backbone_frozen(_FakeBackbone({"encoder.query.lora_A.default.weight": _FakeParameter(True)}))
+    with pytest.raises(AssertionError, match="base_layer.weight"):
+        assert_backbone_frozen(_FakeBackbone({"encoder.query.base_layer.weight": _FakeParameter(True)}))
