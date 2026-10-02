@@ -58,7 +58,14 @@ def test_real_communication_state_and_round_trip(real_runtime, method):
     assert "backbone" not in state
     assert communication_size_bytes(state) == sum(value.numel() * value.element_size() for group in state.values() for value in group.values())
     if method == "lora":
-        assert model.adapter.target_modules == ("q_proj", "v_proj")
+        assert set(model.adapter.target_modules) == {"query", "value"}
+        injected_projection_names = {
+            name.rsplit(".", 1)[-1]
+            for name, module in model.adapter.model.named_modules()
+            if hasattr(module, "lora_A") or hasattr(module, "lora_B")
+        }
+        assert injected_projection_names == {"query", "value"}
+        assert "key" not in injected_projection_names
         assert state["adapter"]
         assert all("lora_" in key.lower() for key in state["adapter"])
     else:
