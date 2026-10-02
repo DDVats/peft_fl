@@ -13,3 +13,4 @@ class ResultLogger:
     def write_round(self, record: dict[str, Any]) -> None:
         with (self.directory / "rounds.jsonl").open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(record, allow_nan=False) + "\n")
+            handle.flush()

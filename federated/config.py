@@ -9,10 +9,10 @@ class FederatedConfig:
     dataset: str
     method: str
     communication_state: str = "adapter_plus_classifier"
-    number_of_clients: int = 2
+    number_of_clients: int = 4
     client_fraction: float = 1.0
     local_epochs: int = 1
-    federated_rounds: int = 3
+    federated_rounds: int = 10
     batch_size: int = 32
     learning_rate: float = 0.001
     seed: int = 42

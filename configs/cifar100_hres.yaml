@@ -3,10 +3,10 @@ method: hres
 backbone: google/vit-base-patch16-224-in21k
 num_classes: 100
 communication_state: adapter_plus_classifier
-number_of_clients: 2
+number_of_clients: 4
 client_fraction: 1.0
 local_epochs: 1
-federated_rounds: 3
+federated_rounds: 10
 batch_size: 32
 learning_rate: 0.001
 seed: 42
